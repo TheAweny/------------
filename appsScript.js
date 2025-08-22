@@ -1685,3 +1685,5 @@ function runTests() {
 function exportConfig() {
   console.log('Текущая конфигурация системы:', JSON.stringify(CONFIG, null, 2));
 }
+
+// END
