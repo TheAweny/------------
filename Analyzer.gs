@@ -289,9 +289,21 @@ class AromatherapyAnalyzer {
    * Анализирует сочетания масел
    */
   analyzeCombinations() {
-    const combinationChecker = new CombinationChecker(this.sheets.input);
+    const combinationChecker = new CombinationChecker(this.sheets.input, this.dictionary);
     const foundCombinations = combinationChecker.checkAllCombinations();
     this.analysisResults.combinations = combinationChecker.getStructuredCombinations();
+    
+    // Добавляем информацию о сочетаниях в паттерны
+    if (foundCombinations.length > 0) {
+      const comboPatterns = combinationChecker.getCombinationsByGroups();
+      Object.entries(comboPatterns).forEach(([groupName, combos]) => {
+        if (combos.length > 0) {
+          this.analysisResults.patterns.push(
+            `${groupName} группа: выявлено ${combos.length} сочетаний масел`
+          );
+        }
+      });
+    }
   }
   
   /**
@@ -299,7 +311,7 @@ class AromatherapyAnalyzer {
    */
   generateReports() {
     const skewsReporter = new ImprovedSkewsReporter(this.sheets.skews, this.oilGroups);
-    const outputReporter = new ImprovedOutputReporter(this.sheets.output, this.analysisResults, this.oilGroups);
+    const outputReporter = new ImprovedOutputReporter(this.sheets.output, this.analysisResults, this.oilGroups, this.dictionary);
     
     skewsReporter.generate();
     outputReporter.generate();

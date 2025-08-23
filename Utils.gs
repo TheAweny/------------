@@ -42,23 +42,6 @@ class Utils {
   }
 
   /**
-   * Форматирование текста для отчетов
-   * @param {string} text - Исходный текст
-   * @param {string} type - Тип форматирования (header, subheader, data)
-   * @returns {string} Отформатированный текст
-   */
-  static formatReportText(text, type = 'data') {
-    switch (type) {
-      case 'header':
-        return `\n${'='.repeat(80)}\n${text.toUpperCase()}\n${'='.repeat(80)}\n`;
-      case 'subheader':
-        return `\n${'-'.repeat(60)}\n${text}\n${'-'.repeat(60)}\n`;
-      default:
-        return text;
-    }
-  }
-
-  /**
    * Парсит поле "Сочетания" вида "[1] ... [2] ..." в словарь номер->описание
    * @param {string} combosText - Исходный текст сочетаний
    * @returns {Object} Объект { index: Map<number,string>, order: number[] }
@@ -66,18 +49,35 @@ class Utils {
   static parseCombos(combosText) {
     const result = new Map();
     const order = [];
-    if (!combosText) return { index: result, order };
-    const regex = /\[(\d+)\]\s*([^\[]+)/g; // [n] followed by description until next [ or end
+    
+    if (!combosText || typeof combosText !== 'string') {
+      return { index: result, order };
+    }
+    
+    // Улучшенный regex для поиска сочетаний
+    const regex = /\[(\d+)\]\s*([^\[]+?)(?=\s*\[\d+\]|$)/g;
     let match;
+    
     while ((match = regex.exec(combosText)) !== null) {
       const num = parseInt(match[1], 10);
-      const desc = match[2].trim().replace(/\s+/g, ' ');
-      if (!Number.isNaN(num)) {
-        result.set(num, desc.endsWith('.') ? desc : desc + '.');
+      let desc = match[2].trim();
+      
+      // Очищаем описание от лишних символов
+      desc = desc.replace(/\s+/g, ' ').trim();
+      
+      if (!Number.isNaN(num) && desc.length > 0) {
+        // Убираем лишние пробелы и точки в конце
+        desc = desc.replace(/\s*\.\s*$/, '').trim();
+        if (!desc.endsWith('.')) {
+          desc += '.';
+        }
+        
+        result.set(num, desc);
         order.push(num);
       }
     }
-    return { index: result, order };
+    
+    return { index: result, order: order.sort((a, b) => a - b) };
   }
 
   /**
@@ -117,5 +117,111 @@ class Utils {
       cleaned = cleaned ? `${cleaned} ${extra}` : extra;
     }
     return cleaned.trim();
+  }
+  
+  /**
+   * Форматирует текст для красивого отображения в отчётах
+   * @param {string} text - Исходный текст
+   * @param {string} type - Тип форматирования
+   * @returns {string} Отформатированный текст
+   */
+  static formatReportText(text, type = 'data') {
+    if (!text) return '';
+    
+    switch (type) {
+      case 'header':
+        return `\n${'='.repeat(80)}\n${text.toUpperCase()}\n${'='.repeat(80)}\n`;
+      case 'subheader':
+        return `\n${'-'.repeat(60)}\n${text}\n${'-'.repeat(60)}\n`;
+      case 'emphasis':
+        return `**${text}**`;
+      case 'warning':
+        return `⚠️ ${text}`;
+      case 'success':
+        return `✅ ${text}`;
+      case 'error':
+        return `🚨 ${text}`;
+      default:
+        return text;
+    }
+  }
+  
+  /**
+   * Создает красивую таблицу для отчётов
+   * @param {Array} data - Данные таблицы
+   * @param {Array} headers - Заголовки
+   * @returns {string} Отформатированная таблица
+   */
+  static createFormattedTable(data, headers) {
+    if (!data || data.length === 0) return "Нет данных для отображения";
+    
+    let table = "\n";
+    
+    // Заголовки
+    table += "| " + headers.join(" | ") + " |\n";
+    table += "| " + headers.map(() => "---").join(" | ") + " |\n";
+    
+    // Данные
+    data.forEach(row => {
+      table += "| " + row.join(" | ") + " |\n";
+    });
+    
+    return table;
+  }
+  
+  /**
+   * Проверяет корректность данных масла
+   * @param {string} oil - Название масла
+   * @param {string} zone - Зона
+   * @param {string} group - Группа
+   * @returns {Object} Результат проверки
+   */
+  static validateOilData(oil, zone, group) {
+    const result = {
+      isValid: true,
+      errors: [],
+      warnings: []
+    };
+    
+    if (!oil || oil.trim() === '') {
+      result.isValid = false;
+      result.errors.push("Название масла не может быть пустым");
+    }
+    
+    if (!zone || !CONFIG.ZONES.includes(zone)) {
+      result.isValid = false;
+      result.errors.push(`Некорректная зона: ${zone}`);
+    }
+    
+    if (group && !Object.values(CONFIG.OIL_GROUPS).includes(group)) {
+      result.warnings.push(`Неизвестная группа: ${group}`);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Генерирует уникальный ключ для масла
+   * @param {string} oil - Название масла
+   * @param {string} zone - Зона
+   * @returns {string} Уникальный ключ
+   */
+  static generateOilKey(oil, zone) {
+    return `${oil.trim()}|${zone}`;
+  }
+  
+  /**
+   * Очищает и нормализует текст
+   * @param {string} text - Исходный текст
+   * @returns {string} Очищенный текст
+   */
+  static cleanText(text) {
+    if (!text) return '';
+    
+    return text
+      .replace(/\s+/g, ' ')           // Убираем множественные пробелы
+      .replace(/\n+/g, ' ')           // Заменяем переносы строк на пробелы
+      .replace(/[^\w\s\-\.\,\:\;\(\)\[\]]/g, '') // Убираем специальные символы
+      .trim();
   }
 }
