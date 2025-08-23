@@ -2,14 +2,14 @@
 
 /**
  * Класс для автоматической проверки сочетаний эфирных масел
- * Содержит полную базу правил сочетаний и логику их проверки
+ * Динамически загружает правила сочетаний из словаря и проверяет их
  */
 class CombinationChecker {
-  constructor(inputSheet) {
+  constructor(inputSheet, dictionary) {
     this.inputSheet = inputSheet;
+    this.dictionary = dictionary;
     this.data = this.loadInputData();
     this.oilZones = this.indexOilsByZones();
-    this.combinationRules = this.initializeCombinationRules();
     this.foundCombinations = [];
   }
   
@@ -54,358 +54,101 @@ class CombinationChecker {
   }
   
   /**
-   * Инициализирует правила сочетаний масел
-   * @returns {Object} Объект с правилами сочетаний
-   */
-  initializeCombinationRules() {
-    return {
-      // Цитрусовая группа
-      "Апельсин": [
-        {
-          oils: ["Литцея Кубеба"],
-          zones: ["+++", "+", "---", "-"],
-          results: [
-            "Переутомление. Потребность в повышении концентрации внимания.",
-            "Напряжение, нарушение адаптации."
-          ]
-        },
-        {
-          oils: ["Грейпфрут", "Ваниль"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Нарушение пищевого поведения."],
-          requireAll: true
-        },
-        {
-          oils: ["Бергамот", "Мандарин"],
-          zones: ["+++", "+"],
-          results: ["Потребность в радости, беззаботности."],
-          requireAny: true
-        }
-      ],
-      "Бергамот": [
-        {
-          oils: ["Лимон"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Эмоциональное переутомление. Часто встречается у подростков."]
-        }
-      ],
-      "Лимон": [
-        {
-          oils: ["Бергамот"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Эмоциональное переутомление. Часто встречается у подростков."]
-        },
-        {
-          oils: ["Литцея Кубеба"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Склонность к мигреням."]
-        },
-        {
-          oils: ["Аир"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Возможен лямблиоз."]
-        }
-      ],
-      "Грейпфрут": [
-        {
-          oils: ["Бензоин"],
-          zones: ["+++", "---", "0"],
-          results: ["Склонность к сахарному диабету."]
-        },
-        {
-          oils: ["Герань"],
-          zones: ["+++", "---"],
-          results: ["Нарушение работы щитовидной железы."]
-        },
-        {
-          oils: ["Литцея Кубеба"],
-          zones: ["+++", "+"],
-          results: ["Нарушена адаптация. Нарушение работы ЦНС. Головные боли."]
-        }
-      ],
-      "Литцея Кубеба": [
-        {
-          oils: ["Апельсин"],
-          zones: ["+++", "+", "---", "-"],
-          results: [
-            "Напряжение, нарушение адаптации.",
-            "Нарушение работы ЦНС."
-          ]
-        },
-        {
-          oils: ["Лимон"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Склонность к мигреням."]
-        },
-        {
-          oils: ["Грейпфрут"],
-          zones: ["+++", "+"],
-          results: ["Нарушена адаптация. Нарушение работы ЦНС. Головные боли."]
-        },
-        {
-          oils: ["Мята", "Эвкалипт"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Последствия травмы ЦНС."],
-          requireAny: true
-        }
-      ],
-      
-      // Хвойная группа
-      "Кедр": [
-        {
-          oils: ["Кипарис"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Острая потребность в понимании и сильном плече."]
-        },
-        {
-          oils: ["Можжевеловые ягоды"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Хронические нарушения МПС."]
-        }
-      ],
-      "Кипарис": [
-        {
-          oils: ["Ель", "Можжевеловые ягоды"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Потребность в поддержке на фоне страхов."],
-          requireAny: true
-        },
-        {
-          oils: ["Ладан", "Бензоин"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Непрожитая потеря близкого человека."],
-          requireAny: true
-        },
-        {
-          oils: ["Лимон"],
-          zones: ["+++"],
-          results: ["Купероз, нарушение работы печени."]
-        },
-        {
-          oils: ["Мята", "Иланг-иланг"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Хронические нарушения ССС."],
-          requireAny: true
-        },
-        {
-          oils: ["Иланг-иланг"],
-          zones: ["+++"],
-          results: ["Нарушение сердечного ритма."]
-        }
-      ],
-      "Ель": [
-        {
-          oils: ["Кипарис", "Можжевеловые ягоды"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Потребность в поддержке на фоне страхов."],
-          requireAny: true
-        },
-        {
-          oils: ["Пихта", "Можжевеловые ягоды"],
-          zones: ["+++", "+"],
-          results: ["Человек не справляется со страхами."],
-          requireAny: true
-        },
-        {
-          oils: ["Каяпут"],
-          zones: ["+++", "+"],
-          results: ["Может быть обострение Дорсопатии."]
-        },
-        {
-          oils: ["Чабрец", "Эвкалипт", "Анис"],
-          zones: ["+++", "+"],
-          results: ["Остаточные явления после ОРВИ с нарушением ДС."],
-          requireAny: true
-        }
-      ],
-      "Пихта": [
-        {
-          oils: ["Ель", "Можжевеловые ягоды"],
-          zones: ["+++", "+"],
-          results: ["Человек не справляется со страхами."],
-          requireAny: true
-        },
-        {
-          oils: ["Ладан", "Кипарис"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Страх смерти."],
-          requireAny: true
-        },
-        {
-          oils: ["Герань"],
-          zones: ["---", "-"],
-          results: ["ЛОР-нарушения."]
-        },
-        {
-          oils: ["Бензоин"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Нейродермиты."]
-        }
-      ],
-      "Можжевеловые ягоды": [
-        {
-          oils: ["Пихта"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Усиливаются/нивелируются внутренние страхи."]
-        },
-        {
-          oils: ["Ель", "Пихта"],
-          zones: ["+++", "+"],
-          results: ["Человек не справляется со страхами."],
-          requireAny: true
-        },
-        {
-          oils: ["Полынь"],
-          zones: ["+++", "+"],
-          results: ["Может быть эндокринные нарушения."]
-        },
-        {
-          oils: ["Кедр"],
-          zones: ["+++", "---"],
-          results: ["Отеки."]
-        },
-        {
-          oils: ["Кедр"],
-          zones: ["-"],
-          results: ["Нарушения МПС."]
-        }
-      ],
-      
-      // Пряная группа
-      "Анис": [
-        {
-          oils: ["Фенхель"],
-          zones: ["+++", "+"],
-          results: ["Проявление тревожности."]
-        },
-        {
-          oils: ["Ель", "Пихта", "Можжевеловые ягоды"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Человека преследуют навязчивые страхи."],
-          requireAny: true
-        },
-        {
-          oils: ["Чабрец"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Тотально снижена самооценка, человек занимается самокопанием."]
-        },
-        {
-          oils: ["Фенхель", "Чабрец"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Зависимость/склонность к зависимости, часто у курильщиков."],
-          requireAny: true
-        },
-        {
-          oils: ["Фенхель"],
-          zones: ["+++", "+", "---"],
-          results: ["Высокое содержание слизи в кишечнике."]
-        },
-        {
-          oils: ["Фенхель", "Чабрец"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["ОРВИ."],
-          requireAny: true
-        },
-        {
-          oils: ["Фенхель", "Ветивер", "Чабрец"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Дисбактериоз."],
-          requireAny: true
-        }
-      ],
-      "Гвоздика": [
-        {
-          oils: ["Мята"],
-          zones: ["+++", "+", "---", "-"],
-          results: [
-            "Эмоциональная зацикленность.",
-            "Нарушение мозгового кровообращения."
-          ]
-        },
-        {
-          oils: ["Полынь", "Аир", "Берёза", "Эвкалипт"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Паразитарная инвазия усиливается ароматами."],
-          requireAny: true
-        }
-      ],
-      "Мята": [
-        {
-          oils: ["Лаванда", "Иланг-иланг"],
-          zones: ["+++", "+"],
-          results: ["Склонность к повышенному АД."],
-          requireAny: true
-        },
-        {
-          oils: ["Лаванда", "Кипарис"],
-          zones: ["+++", "+"],
-          results: ["Может быть нарушение ритма, нарушение ССС."],
-          requireAny: true
-        },
-        {
-          oils: ["Розмарин"],
-          zones: ["+++", "+"],
-          results: ["ВСД."]
-        },
-        {
-          oils: ["Литцея Кубеба", "Эвкалипт"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Последствия травмы/нарушение работы ЦНС."],
-          requireAny: true
-        },
-        {
-          oils: ["Иланг-иланг"],
-          zones: ["+++", "+", "---", "-"],
-          results: ["Нарушение работы ССС."]
-        }
-      ]
-      
-      // Остальные группы сокращены для краткости...
-      // В реальном коде здесь будут все правила из исходного файла
-    };
-  }
-  
-  /**
-   * Проверяет все возможные сочетания масел
+   * Проверяет все возможные сочетания масел на основе данных из словаря
    * @returns {Array} Массив найденных сочетаний
    */
   checkAllCombinations() {
     this.foundCombinations = [];
     
+    // Проходим по всем маслам в вводе
     Object.keys(this.oilZones).forEach(oil => {
-      const rules = this.combinationRules[oil];
-      if (rules) {
-        rules.forEach(rule => {
-          const foundOils = this.findOilsForRule(rule);
-          if (this.checkRuleConditions(rule, foundOils)) {
-            this.foundCombinations.push({
-              mainOil: oil,
-              foundOils: foundOils,
-              results: rule.results,
-              zones: rule.zones
-            });
-          }
-        });
-      }
+      // Проверяем каждую зону для данного масла
+      this.oilZones[oil].forEach(zoneInfo => {
+        const key = `${oil}|${zoneInfo.zone}`;
+        const dictEntry = this.dictionary.get(key);
+        
+        if (dictEntry && dictEntry.combos) {
+          // Парсим сочетания из словаря
+          const parsedCombos = Utils.parseCombos(dictEntry.combos);
+          
+          // Проверяем каждое сочетание
+          parsedCombos.order.forEach(comboIndex => {
+            const comboText = parsedCombos.index.get(comboIndex);
+            if (comboText) {
+              this.checkCombinationFromText(oil, zoneInfo, comboText, comboIndex);
+            }
+          });
+        }
+      });
     });
     
     return this.foundCombinations;
   }
   
   /**
-   * Находит масла для конкретного правила
-   * @param {Object} rule - Правило проверки
+   * Проверяет конкретное сочетание на основе текста из словаря
+   * @param {string} mainOil - Основное масло
+   * @param {Object} zoneInfo - Информация о зоне
+   * @param {string} comboText - Текст сочетания
+   * @param {number} comboIndex - Индекс сочетания
+   */
+  checkCombinationFromText(mainOil, zoneInfo, comboText, comboIndex) {
+    // Ищем упоминания других масел в тексте сочетания
+    const mentionedOils = this.extractMentionedOils(comboText);
+    
+    if (mentionedOils.length > 0) {
+      // Проверяем, есть ли эти масла в вводе в соответствующих зонах
+      const foundOils = this.findMentionedOilsInInput(mentionedOils, zoneInfo.zone);
+      
+      if (foundOils.length > 0) {
+        // Создаем запись о найденном сочетании
+        this.foundCombinations.push({
+          mainOil: mainOil,
+          mainOilZone: zoneInfo.zone,
+          mainOilTroika: zoneInfo.troika,
+          comboIndex: comboIndex,
+          comboText: comboText,
+          foundOils: foundOils,
+          interpretation: this.extractInterpretation(comboText)
+        });
+      }
+    }
+  }
+  
+  /**
+   * Извлекает упомянутые масла из текста сочетания
+   * @param {string} comboText - Текст сочетания
+   * @returns {Array} Массив названий масел
+   */
+  extractMentionedOils(comboText) {
+    const oils = [];
+    
+    // Ищем упоминания масел в тексте
+    Object.keys(this.oilZones).forEach(oilName => {
+      if (comboText.includes(oilName)) {
+        oils.push(oilName);
+      }
+    });
+    
+    return oils;
+  }
+  
+  /**
+   * Находит упомянутые масла во вводе в соответствующих зонах
+   * @param {Array} mentionedOils - Упомянутые масла
+   * @param {string} mainZone - Зона основного масла
    * @returns {Array} Массив найденных масел
    */
-  findOilsForRule(rule) {
+  findMentionedOilsInInput(mentionedOils, mainZone) {
     const found = [];
     
-    rule.oils.forEach(targetOil => {
-      if (this.oilZones[targetOil]) {
-        this.oilZones[targetOil].forEach(zoneInfo => {
-          if (rule.zones.includes(zoneInfo.zone)) {
+    mentionedOils.forEach(oilName => {
+      if (this.oilZones[oilName]) {
+        this.oilZones[oilName].forEach(zoneInfo => {
+          // Проверяем, подходит ли зона для сочетания
+          if (this.isZoneCompatibleForCombination(mainZone, zoneInfo.zone)) {
             found.push({
-              oil: targetOil,
+              oil: oilName,
               zone: zoneInfo.zone,
               troika: zoneInfo.troika,
               row: zoneInfo.row
@@ -419,37 +162,92 @@ class CombinationChecker {
   }
   
   /**
-   * Проверяет условия правила
-   * @param {Object} rule - Правило
-   * @param {Array} foundOils - Найденные масла
-   * @returns {boolean} true если условия выполнены
+   * Проверяет совместимость зон для сочетания
+   * @param {string} mainZone - Зона основного масла
+   * @param {string} otherZone - Зона другого масла
+   * @returns {boolean} true если зоны совместимы
    */
-  checkRuleConditions(rule, foundOils) {
-    if (rule.requireAll) {
-      return foundOils.length === rule.oils.length;
-    } else if (rule.requireAny) {
-      return foundOils.length > 0;
-    } else {
-      // По умолчанию требуются все масла
-      return foundOils.length === rule.oils.length;
-    }
+  isZoneCompatibleForCombination(mainZone, otherZone) {
+    // Базовые правила совместимости зон
+    const zoneCompatibility = {
+      "+++": ["+++", "+", "---", "-"],
+      "+": ["+++", "+", "---", "-"],
+      "---": ["+++", "+", "---", "-"],
+      "-": ["+++", "+", "---", "-"],
+      "0": ["+++", "+", "---", "-"],
+      "R": ["+++", "+", "---", "-"],
+      "N": ["+++", "+", "---", "-"]
+    };
+    
+    return zoneCompatibility[mainZone] && zoneCompatibility[mainZone].includes(otherZone);
   }
   
   /**
-   * Получает структурированный отчет по сочетаниям
-   * @returns {Array} Массив объектов сочетаний для отчета
+   * Извлекает интерпретацию из текста сочетания
+   * @param {string} comboText - Текст сочетания
+   * @returns {string} Интерпретация
+   */
+  extractInterpretation(comboText) {
+    // Убираем упоминания масел и оставляем только интерпретацию
+    let interpretation = comboText;
+    
+    // Убираем фразы типа "в сочетании с", "В сочетании с"
+    interpretation = interpretation.replace(/[Вв]\s+сочетании\s+с\s+[^\.]+\.?\s*/g, '');
+    
+    // Убираем лишние пробелы
+    interpretation = interpretation.replace(/\s+/g, ' ').trim();
+    
+    return interpretation;
+  }
+  
+  /**
+   * Получает структурированный отчет по сочетаниям для отчета
+   * @returns {Array} Массив объектов сочетаний
    */
   getStructuredCombinations() {
     return this.foundCombinations.map(combo => ({
       mainOil: combo.mainOil,
+      mainOilZone: combo.mainOilZone,
+      mainOilTroika: combo.mainOilTroika,
+      comboIndex: combo.comboIndex,
+      comboText: combo.comboText,
       foundOils: combo.foundOils.map(oil => ({
         name: oil.oil,
         zone: oil.zone,
         troika: oil.troika,
         displayText: `${oil.oil} (${oil.zone}${oil.troika ? `, топ ${oil.troika}` : ''})`
       })),
-      results: combo.results,
-      zones: combo.zones
+      interpretation: combo.interpretation,
+      zones: [combo.mainOilZone, ...combo.foundOils.map(oil => oil.zone)]
     }));
+  }
+  
+  /**
+   * Получает количество найденных сочетаний
+   * @returns {number} Количество сочетаний
+   */
+  getCombinationsCount() {
+    return this.foundCombinations.length;
+  }
+  
+  /**
+   * Получает сочетания по группам масел
+   * @returns {Object} Объект с сочетаниями по группам
+   */
+  getCombinationsByGroups() {
+    const groups = {};
+    
+    this.foundCombinations.forEach(combo => {
+      const mainOilEntry = this.dictionary.get(`${combo.mainOil}|${combo.mainOilZone}`);
+      if (mainOilEntry && mainOilEntry.group) {
+        const groupName = mainOilEntry.group;
+        if (!groups[groupName]) {
+          groups[groupName] = [];
+        }
+        groups[groupName].push(combo);
+      }
+    });
+    
+    return groups;
   }
 }

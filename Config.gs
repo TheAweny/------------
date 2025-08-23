@@ -52,9 +52,23 @@ const CONFIG = {
   
   // Настройки форматирования отчетов
   REPORT_FORMATTING: {
-    HEADER_STYLE: { fontWeight: "bold", fontSize: 14, background: "#e8f4f8" },
-    SUBHEADER_STYLE: { fontWeight: "bold", fontSize: 12, background: "#f0f8ff" },
+    HEADER_STYLE: { fontWeight: "bold", fontSize: 18, background: "#1f4e79", fontColor: "white" },
+    SUBHEADER_STYLE: { fontWeight: "bold", fontSize: 14, background: "#2e7d32", fontColor: "white" },
     DATA_STYLE: { fontSize: 10, wrap: true, verticalAlignment: "top" },
-    TABLE_BORDER: { top: true, bottom: true, left: true, right: true }
+    TABLE_BORDER: { top: true, bottom: true, left: true, right: true },
+    COLORS: {
+      EXECUTIVE: "#1f4e79",
+      ZONES: "#2e7d32", 
+      COMBINATIONS: "#f57c00",
+      SINGLE: "#7b1fa2",
+      PATTERNS: "#1976d2",
+      RECOMMENDATIONS: "#d32f2f",
+      PROBLEMS: "#d32f2f",
+      RESOURCES: "#388e3c",
+      SPECIAL: "#f57c00",
+      PE: "#1976d2",
+      SOMATIC: "#7b1fa2",
+      GENERAL: "#2e7d32"
+    }
   }
 };

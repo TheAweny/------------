@@ -26,13 +26,15 @@ class ImprovedSkewsReporter {
    */
   createHeader() {
     const headers = [
-      "Группа масел", "+++", "+", "N", "-", "---", "0", "R", 
-      "Всего масел", "Масла в группе", "ПЭ Анализ", "Соматический анализ"
+      "🌿 Группа масел", "🔥 +++", "⚡ +", "⚪ N", "⚠️ -", "💀 ---", "🚫 0", "🔄 R", 
+      "📊 Всего", "🛢️ Масла в группе", "🧠 ПЭ Анализ", "💊 Соматический анализ"
     ];
     
     this.sheet.getRange("A1:L1").setValues([headers])
       .setFontWeight("bold")
-      .setBackground("#e8f4f8")
+      .setFontSize(11)
+      .setBackground("#1f4e79")
+      .setFontColor("white")
       .setHorizontalAlignment("center");
   }
   
@@ -68,6 +70,8 @@ class ImprovedSkewsReporter {
         this.sheet.getRange(rowIndex, 1, 1, 12).setBackground("#fff2cc");
       } else if (totalOils === 0) {
         this.sheet.getRange(rowIndex, 1, 1, 12).setBackground("#f4cccc");
+      } else if (totalOils <= 2) {
+        this.sheet.getRange(rowIndex, 1, 1, 12).setBackground("#d5e8d4");
       }
       
       rowIndex++;
@@ -91,125 +95,121 @@ class ImprovedSkewsReporter {
     switch (groupName) {
       case CONFIG.OIL_GROUPS.CITRUS:
         if (positiveCount >= 5) {
-          peAnalysis = "ПЕРЕКОС: Зависимость от чужого мнения";
-          sAnalysis = "РИСК: Окислительный стресс";
+          peAnalysis = "🚨 ПЕРЕКОС: Зависимость от чужого мнения";
+          sAnalysis = "⚠️ РИСК: Окислительный стресс";
         }
         if (negativeCount >= 5) {
-          peAnalysis += (peAnalysis ? " | " : "") + "ПЕРЕКОС: Игнорирование мнения окружения";
-          sAnalysis += (sAnalysis ? " | " : "") + "РИСК: Хронические застойные процессы";
+          peAnalysis += (peAnalysis ? " | " : "") + "🚨 ПЕРЕКОС: Игнорирование мнения окружения";
+          sAnalysis += (sAnalysis ? " | " : "") + "⚠️ РИСК: Хронические застойные процессы";
         }
         break;
         
       case CONFIG.OIL_GROUPS.CONIFEROUS:
-        if (positiveCount + (groupData["0"] || 0) === 5) {
-          peAnalysis = "КРИТИЧНО: Состояние паники, гиперстресс";
+        if (positiveCount >= 4) {
+          peAnalysis = "🚨 ПЕРЕКОС: Острые воспалительные процессы";
+          sAnalysis = "⚠️ РИСК: Нарушение работы ЦНС";
         }
-        if (negativeCount >= 5) {
-          peAnalysis = "РИСК: Пофигизм, не чувствует опасности";
-        }
-        if ((groupData["-"] || 0) > 0) {
-          sAnalysis = "ВНИМАНИЕ: Острый воспалительный процесс";
+        if (negativeCount >= 4) {
+          peAnalysis += (peAnalysis ? " | " : "") + "🚨 ПЕРЕКОС: Хронические воспаления";
+          sAnalysis += (sAnalysis ? " | " : "") + "⚠️ РИСК: Застойные процессы";
         }
         break;
         
       case CONFIG.OIL_GROUPS.SPICE:
-        if (positiveCount === 5) {
-          peAnalysis = "ПОТРЕБНОСТЬ: Признание, тепло и забота";
+        if (positiveCount >= 5) {
+          peAnalysis = "🚨 ПЕРЕКОС: Работа с потребностью в признании";
+          sAnalysis = "⚠️ РИСК: Нарушения ЖКТ и эндокринной системы";
         }
-        if (negativeCount >= 4) {
-          sAnalysis = "ХРОНИЧНО: Нарушения ЖКТ и эндокринной системы";
+        if (negativeCount >= 5) {
+          peAnalysis += (peAnalysis ? " | " : "") + "🚨 ПЕРЕКОС: Подавление эмоций";
+          sAnalysis += (sAnalysis ? " | " : "") + "⚠️ РИСК: Хронические нарушения";
         }
         break;
         
-      case CONFIG.OIL_GROUPS.FLORAL:
-        if ((groupData["N"] || 0) > 3) {
-          peAnalysis = "НОРМА: Принятие женственности без напряжения";
+      default:
+        if (totalCount > 0) {
+          peAnalysis = "📊 Анализ требует дополнительного изучения";
+          sAnalysis = "📊 Анализ требует дополнительного изучения";
         }
-        break;
     }
     
-    // Добавляем общий анализ если специфического нет
-    if (!peAnalysis && totalCount > 0) {
-      if (positiveCount > negativeCount) {
-        peAnalysis = "Преобладание активирующих масел";
-      } else if (negativeCount > positiveCount) {
-        peAnalysis = "Преобладание ресурсных масел";
-      } else {
-        peAnalysis = "Сбалансированное распределение";
-      }
+    if (!peAnalysis) {
+      peAnalysis = "✅ Перекосов не выявлено";
+      sAnalysis = "✅ Перекосов не выявлено";
     }
     
-    if (!sAnalysis && totalCount > 0) {
-      sAnalysis = totalCount > 3 ? "Активная группа" : "Умеренная активность";
-    }
-    
-    return [peAnalysis || "Нет данных", sAnalysis || "Нет данных"];
+    return [peAnalysis, sAnalysis];
   }
   
   /**
-   * Добавляет секцию общего анализа
+   * Добавляет сводную секцию
    */
   addSummarySection() {
-    const startRow = Object.keys(this.groups).length + 3;
+    const lastRow = this.sheet.getLastRow();
+    const summaryRow = lastRow + 2;
     
-    this.sheet.getRange(startRow, 1).setValue("ОБЩИЙ АНАЛИЗ ПЕРЕКОСОВ:")
-      .setFontWeight("bold").setFontSize(12);
+    // Заголовок сводки
+    this.sheet.getRange(summaryRow, 1).setValue("📋 СВОДКА ПО ГРУППАМ")
+      .setFontSize(14).setFontWeight("bold")
+      .setBackground("#e8f4f8");
     
-    let summaryRow = startRow + 1;
-    const totalOilsCount = Object.values(this.groups)
-      .reduce((sum, group) => sum + CONFIG.ZONES.reduce((gSum, zone) => gSum + (group[zone] || 0), 0), 0);
+    this.sheet.getRange(summaryRow, 1, 1, 12).merge();
     
-    this.sheet.getRange(summaryRow++, 1, 1, 2)
-      .setValues([["Общее количество масел:", totalOilsCount]]);
+    // Данные сводки
+    const summaryData = this.generateSummaryData();
+    const summaryHeaders = ["Параметр", "Значение", "Статус"];
     
-    // Анализ доминирующих групп
-    const dominantGroups = Object.entries(this.groups)
-      .filter(([name, data]) => CONFIG.ZONES.reduce((sum, zone) => sum + (data[zone] || 0), 0) >= 3)
-      .map(([name]) => name);
-    
-    this.sheet.getRange(summaryRow++, 1, 1, 2)
-      .setValues([["Доминирующие группы:", dominantGroups.join(", ") || "Нет доминирующих групп"]]);
-    
-    // Рекомендации
-    const recommendations = this.generateRecommendations();
-    this.sheet.getRange(summaryRow++, 1).setValue("РЕКОМЕНДАЦИИ:")
-      .setFontWeight("bold");
-    
-    recommendations.forEach((rec, index) => {
-      this.sheet.getRange(summaryRow + index, 1, 1, 3)
-        .setValues([[`${index + 1}. ${rec}`, "", ""]]);
-    });
+    this.addDataTable(summaryData, summaryHeaders, summaryRow + 1);
   }
   
   /**
-   * Генерирует рекомендации на основе анализа
-   * @returns {Array} Массив рекомендаций
+   * Генерирует данные для сводки
+   * @returns {Array} Массив данных сводки
    */
-  generateRecommendations() {
-    const recommendations = [];
+  generateSummaryData() {
+    const summary = [];
     
     Object.entries(this.groups).forEach(([groupName, groupData]) => {
+      const totalOils = CONFIG.ZONES.reduce((sum, zone) => sum + (groupData[zone] || 0), 0);
       const positiveCount = (groupData["+++"] || 0) + (groupData["+"] || 0);
       const negativeCount = (groupData["---"] || 0) + (groupData["-"] || 0);
       
-      if (positiveCount >= 5 && groupName === CONFIG.OIL_GROUPS.CITRUS) {
-        recommendations.push("Работа с самооценкой и независимостью мнения (цитрусовый перекос)");
-      }
+      let status = "✅ Норма";
+      if (totalOils === 0) status = "⚠️ Нет масел";
+      else if (positiveCount >= 5 || negativeCount >= 5) status = "🚨 Перекос";
+      else if (totalOils <= 2) status = "💡 Мало масел";
       
-      if (negativeCount >= 5 && groupName === CONFIG.OIL_GROUPS.CONIFEROUS) {
-        recommendations.push("Обратить внимание на воспалительные процессы (хвойная группа)");
-      }
-      
-      if (positiveCount === 5 && groupName === CONFIG.OIL_GROUPS.SPICE) {
-        recommendations.push("Работа с потребностью в признании и заботе (пряная группа)");
-      }
+      summary.push([groupName, `${totalOils} масел`, status]);
     });
     
-    if (recommendations.length === 0) {
-      recommendations.push("Перекосов не выявлено. Продолжить наблюдение.");
+    return summary;
+  }
+  
+  /**
+   * Добавляет таблицу данных
+   * @param {Array} data - Данные таблицы
+   * @param {Array} headers - Заголовки таблицы
+   * @param {number} startRow - Начальная строка
+   */
+  addDataTable(data, headers, startRow = 1) {
+    // Заголовки
+    this.sheet.getRange(startRow, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight("bold")
+      .setBackground("#e8f4f8")
+      .setHorizontalAlignment("center");
+    
+    // Данные
+    if (data.length > 0) {
+      this.sheet.getRange(startRow + 1, 1, data.length, headers.length)
+        .setValues(data)
+        .setWrap(true)
+        .setVerticalAlignment("top");
     }
     
-    return recommendations;
+    // Границы таблицы
+    const tableRange = this.sheet.getRange(startRow, 1, data.length + 1, headers.length);
+    tableRange.setBorder(true, true, true, true, true, true);
   }
   
   /**
@@ -242,10 +242,11 @@ class ImprovedSkewsReporter {
  * Создает структурированный отчет с таблицами и четкими разделами
  */
 class ImprovedOutputReporter {
-  constructor(sheet, analysisResults, groups) {
+  constructor(sheet, analysisResults, groups, dictionary) {
     this.sheet = sheet;
     this.data = analysisResults;
     this.groups = groups;
+    this.dictionary = dictionary;
     this.currentRow = 1;
   }
   
@@ -271,11 +272,12 @@ class ImprovedOutputReporter {
     const header = "🌿 ПОЛНЫЙ АНАЛИЗ АРОМАТЕРАПИИ ПО АЛГОРИТМУ 3.1 🌿";
     
     this.sheet.getRange(this.currentRow, 1).setValue(header)
-      .setFontSize(16).setFontWeight("bold")
+      .setFontSize(18).setFontWeight("bold")
       .setHorizontalAlignment("center")
-      .setBackground("#e8f4f8");
+      .setBackground("#1f4e79")
+      .setFontColor("white");
     
-    this.sheet.getRange(this.currentRow, 1, 1, 6).merge();
+    this.sheet.getRange(this.currentRow, 1, 1, 8).merge();
     this.currentRow += 2;
   }
   
@@ -283,21 +285,21 @@ class ImprovedOutputReporter {
    * Создает краткое резюме
    */
   createExecutiveSummary() {
-    this.addSectionHeader("📊 КРАТКОЕ РЕЗЮМЕ");
+    this.addSectionHeader("📊 КРАТКОЕ РЕЗЮМЕ", "executive");
     
     const totalOils = Object.values(this.groups)
       .reduce((sum, group) => sum + CONFIG.ZONES.reduce((gSum, zone) => gSum + (group[zone] || 0), 0), 0);
     
     const summaryData = [
-      ["Общее количество масел:", totalOils],
-      ["Размер нейтральной зоны (N):", `${this.data.neutralZoneSize} ${this.data.neutralZoneSize > 3 ? '(большая - принятие)' : '(маленькая - напряжение)'}`],
-      ["Основные проблемы (++++):", this.data.mainTasks.plusPlusPlusPE.length],
-      ["Ресурсные состояния (---):", this.data.mainTasks.minusMinusMinusPE.length],
-      ["Найдено сочетаний масел:", this.data.combinations.length],
-      ["Единичные масла:", this.data.singleOils.length]
+      ["🔢 Общее количество масел:", totalOils, this.getStatusForTotal(totalOils)],
+      ["⚪ Размер нейтральной зоны (N):", `${this.data.neutralZoneSize}`, this.getStatusForNeutral(this.data.neutralZoneSize)],
+      ["🚨 Основные проблемы (++++):", this.data.mainTasks.plusPlusPlusPE.length, this.getStatusForProblems(this.data.mainTasks.plusPlusPlusPE.length)],
+      ["💪 Ресурсные состояния (---):", this.data.mainTasks.minusMinusMinusPE.length, this.getStatusForResources(this.data.mainTasks.minusMinusMinusPE.length)],
+      ["🔗 Найдено сочетаний масел:", this.data.combinations.length, this.getStatusForCombinations(this.data.combinations.length)],
+      ["🔍 Единичные масла:", this.data.singleOils.length, this.getStatusForSingleOils(this.data.singleOils.length)]
     ];
     
-    this.addDataTable(summaryData, ["Параметр", "Значение"]);
+    this.addDataTable(summaryData, ["Параметр", "Значение", "Статус"]);
     this.currentRow += 2;
   }
   
@@ -305,13 +307,13 @@ class ImprovedOutputReporter {
    * Создает таблицу анализа по зонам
    */
   createZoneAnalysisTable() {
-    this.addSectionHeader("🎯 АНАЛИЗ ПО ЗОНАМ ВОЗДЕЙСТВИЯ");
+    this.addSectionHeader("🎯 АНАЛИЗ ПО ЗОНАМ ВОЗДЕЙСТВИЯ", "zones");
     
     // Основные проблемы (зона +++)
     if (this.data.mainTasks.plusPlusPlusPE.length > 0) {
-      this.addSubsectionHeader("🚨 ОСНОВНЫЕ ПРОБЛЕМЫ (ЗОНА +++)");
+      this.addSubsectionHeader("🚨 ОСНОВНЫЕ ПРОБЛЕМЫ (ЗОНА +++)", "problems");
       
-      const mainProblemsHeaders = ["Масло", "Психоэмоциональное", "Соматическое"];
+      const mainProblemsHeaders = ["🛢️ Масло", "🧠 Психоэмоциональное", "💊 Соматическое", "📊 Приоритет"];
       const mainProblemsData = [];
       
       for (let i = 0; i < Math.max(this.data.mainTasks.plusPlusPlusPE.length, this.data.mainTasks.plusPlusPlusS.length); i++) {
@@ -324,8 +326,9 @@ class ImprovedOutputReporter {
         const oilName = peParts[0] || sParts[0] || "";
         const peDesc = peParts[1] || "";
         const sDesc = sParts[1] || "";
+        const priority = this.getPriorityForOil(oilName, "+++");
         
-        mainProblemsData.push([oilName, peDesc, sDesc]);
+        mainProblemsData.push([oilName, peDesc, sDesc, priority]);
       }
       
       this.addDataTable(mainProblemsData, mainProblemsHeaders);
@@ -334,9 +337,9 @@ class ImprovedOutputReporter {
     
     // Ресурсные состояния (зона ---)
     if (this.data.mainTasks.minusMinusMinusPE.length > 0) {
-      this.addSubsectionHeader("💪 РЕСУРСНЫЕ СОСТОЯНИЯ (ЗОНА ---)");
+      this.addSubsectionHeader("💪 РЕСУРСНЫЕ СОСТОЯНИЯ (ЗОНА ---)", "resources");
       
-      const resourceHeaders = ["Масло", "Психоэмоциональное", "Соматическое"];
+      const resourceHeaders = ["🛢️ Масло", "🧠 Психоэмоциональное", "💊 Соматическое", "📊 Потенциал"];
       const resourceData = [];
       
       for (let i = 0; i < Math.max(this.data.mainTasks.minusMinusMinusPE.length, this.data.mainTasks.minusMinusMinusS.length); i++) {
@@ -349,8 +352,9 @@ class ImprovedOutputReporter {
         const oilName = peParts[0] || sParts[0] || "";
         const peDesc = peParts[1] || "";
         const sDesc = sParts[1] || "";
+        const potential = this.getPotentialForOil(oilName, "---");
         
-        resourceData.push([oilName, peDesc, sDesc]);
+        resourceData.push([oilName, peDesc, sDesc, potential]);
       }
       
       this.addDataTable(resourceData, resourceHeaders);
@@ -359,15 +363,15 @@ class ImprovedOutputReporter {
     
     // Специальные зоны
     if (this.data.specialZones.zero.length > 0 || this.data.specialZones.reverse.length > 0) {
-      this.addSubsectionHeader("⚡ СПЕЦИАЛЬНЫЕ ЗОНЫ");
+      this.addSubsectionHeader("⚡ СПЕЦИАЛЬНЫЕ ЗОНЫ", "special");
       
       const specialZonesData = [
-        ["0-зона (блокировка):", this.data.specialZones.zero.join(", ") || "Нет"],
-        ["R-зона (реверс):", this.data.specialZones.reverse.length === 1 ? 
-          this.data.specialZones.reverse[0] : this.data.specialZones.reverse.join(", ") || "Нет"]
+        ["🚫 0-зона (блокировка):", this.data.specialZones.zero.join(", ") || "Нет", this.getStatusForSpecialZone(this.data.specialZones.zero.length)],
+        ["🔄 R-зона (реверс):", this.data.specialZones.reverse.length === 1 ? 
+          this.data.specialZones.reverse[0] : this.data.specialZones.reverse.join(", ") || "Нет", this.getStatusForSpecialZone(this.data.specialZones.reverse.length)]
       ];
       
-      this.addDataTable(specialZonesData, ["Зона", "Масла"]);
+      this.addDataTable(specialZonesData, ["Зона", "Масла", "Статус"]);
       this.currentRow += 1;
     }
   }
@@ -377,27 +381,28 @@ class ImprovedOutputReporter {
    */
   createCombinationsTable() {
     if (this.data.combinations.length === 0) {
-      this.addSectionHeader("🔗 СОЧЕТАНИЯ МАСЕЛ");
-      this.sheet.getRange(this.currentRow, 1).setValue("Специальных сочетаний не обнаружено.");
+      this.addSectionHeader("🔗 СОЧЕТАНИЯ МАСЕЛ", "combinations");
+      this.sheet.getRange(this.currentRow, 1).setValue("✅ Специальных сочетаний не обнаружено.");
       this.currentRow += 2;
       return;
     }
     
-    this.addSectionHeader("🔗 НАЙДЕННЫЕ СОЧЕТАНИЯ МАСЕЛ");
+    this.addSectionHeader("🔗 НАЙДЕННЫЕ СОЧЕТАНИЯ МАСЕЛ", "combinations");
     
-    const combinationsHeaders = ["Основное масло", "Сочетающиеся масла", "Зоны", "Интерпретация"];
+    const combinationsHeaders = ["🛢️ Основное масло", "🔗 Сочетающиеся масла", "🎯 Зоны", "📝 Интерпретация", "📊 Группа"];
     const combinationsData = [];
     
     this.data.combinations.forEach(combo => {
       const foundOilsText = combo.foundOils.map(oil => oil.displayText).join(", ");
       const zonesText = combo.zones.join(", ");
-      const resultsText = combo.results.join(" | ");
+      const groupName = this.getGroupForOil(combo.mainOil);
       
       combinationsData.push([
-        combo.mainOil,
+        `${combo.mainOil} (${combo.mainOilZone}${combo.mainOilTroika ? `, топ ${combo.mainOilTroika}` : ''})`,
         foundOilsText,
         zonesText,
-        resultsText
+        combo.interpretation,
+        groupName
       ]);
     });
     
@@ -410,16 +415,20 @@ class ImprovedOutputReporter {
    */
   createSingleOilsTable() {
     if (this.data.singleOils.length === 0) {
-      this.addSectionHeader("🔍 ЕДИНИЧНЫЕ МАСЛА В ГРУППАХ");
-      this.sheet.getRange(this.currentRow, 1).setValue("Единичных масел не обнаружено.");
+      this.addSectionHeader("🔍 ЕДИНИЧНЫЕ МАСЛА В ГРУППАХ", "single");
+      this.sheet.getRange(this.currentRow, 1).setValue("✅ Единичных масел не обнаружено.");
       this.currentRow += 2;
       return;
     }
     
-    this.addSectionHeader("🔍 ЕДИНИЧНЫЕ МАСЛА В ГРУППАХ");
+    this.addSectionHeader("🔍 ЕДИНИЧНЫЕ МАСЛА В ГРУППАХ", "single");
     
-    const singleOilsHeaders = ["№", "Масло и интерпретация"];
-    const singleOilsData = this.data.singleOils.map((oil, index) => [index + 1, oil]);
+    const singleOilsHeaders = ["🔢 №", "🛢️ Масло и интерпретация", "📊 Группа"];
+    const singleOilsData = this.data.singleOils.map((oil, index) => {
+      const oilName = oil.split(':')[0];
+      const groupName = this.getGroupForOil(oilName);
+      return [index + 1, oil, groupName];
+    });
     
     this.addDataTable(singleOilsData, singleOilsHeaders);
     this.currentRow += 2;
@@ -429,16 +438,19 @@ class ImprovedOutputReporter {
    * Создает секцию паттернов
    */
   createPatternsSection() {
-    this.addSectionHeader("🔄 ВЫЯВЛЕННЫЕ ЗАКОНОМЕРНОСТИ");
+    this.addSectionHeader("🔄 ВЫЯВЛЕННЫЕ ЗАКОНОМЕРНОСТИ", "patterns");
     
     if (this.data.patterns.length === 0) {
-      this.sheet.getRange(this.currentRow, 1).setValue("Особых закономерностей не выявлено.");
+      this.sheet.getRange(this.currentRow, 1).setValue("✅ Особых закономерностей не выявлено.");
       this.currentRow += 2;
       return;
     }
     
-    const patternsHeaders = ["№", "Закономерность"];
-    const patternsData = this.data.patterns.map((pattern, index) => [index + 1, pattern]);
+    const patternsHeaders = ["🔢 №", "📊 Закономерность", "🎯 Тип"];
+    const patternsData = this.data.patterns.map((pattern, index) => {
+      const type = this.getPatternType(pattern);
+      return [index + 1, pattern, type];
+    });
     
     this.addDataTable(patternsData, patternsHeaders);
     this.currentRow += 2;
@@ -448,29 +460,30 @@ class ImprovedOutputReporter {
    * Создает секцию рекомендаций
    */
   createRecommendationsSection() {
-    this.addSectionHeader("📋 ИТОГОВЫЕ ВЫВОДЫ И РЕКОМЕНДАЦИИ");
+    this.addSectionHeader("📋 ИТОГОВЫЕ ВЫВОДЫ И РЕКОМЕНДАЦИИ", "recommendations");
     
     // Психоэмоциональный вывод
-    this.addSubsectionHeader("🧠 ПСИХОЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ");
+    this.addSubsectionHeader("🧠 ПСИХОЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ", "pe");
     const peConclusion = this.generatePsychoemotionalConclusion();
-    this.sheet.getRange(this.currentRow, 1, 1, 6).setValue(peConclusion).setWrap(true);
+    this.sheet.getRange(this.currentRow, 1, 1, 8).setValue(peConclusion).setWrap(true);
     this.currentRow += 2;
     
     // Соматический вывод
-    this.addSubsectionHeader("💊 СОМАТИЧЕСКОЕ СОСТОЯНИЕ");
+    this.addSubsectionHeader("💊 СОМАТИЧЕСКОЕ СОСТОЯНИЕ", "somatic");
     const sConclusion = this.generateSomaticConclusion();
-    this.sheet.getRange(this.currentRow, 1, 1, 6).setValue(sConclusion).setWrap(true);
+    this.sheet.getRange(this.currentRow, 1, 1, 8).setValue(sConclusion).setWrap(true);
     this.currentRow += 2;
     
     // Общие рекомендации
-    this.addSubsectionHeader("✅ ОБЩИЕ РЕКОМЕНДАЦИИ");
+    this.addSubsectionHeader("✅ ОБЩИЕ РЕКОМЕНДАЦИИ", "general");
     const recommendations = this.generateGeneralRecommendations();
     
-    const recommendationsHeaders = ["№", "Рекомендация", "Приоритет"];
+    const recommendationsHeaders = ["🔢 №", "📝 Рекомендация", "📊 Приоритет", "⏰ Сроки"];
     const recommendationsData = recommendations.map((rec, index) => [
       index + 1, 
       rec.text, 
-      rec.priority
+      rec.priority,
+      rec.timeline
     ]);
     
     this.addDataTable(recommendationsData, recommendationsHeaders);
@@ -479,26 +492,50 @@ class ImprovedOutputReporter {
   /**
    * Добавляет заголовок секции
    * @param {string} title - Заголовок секции
+   * @param {string} type - Тип секции для стилизации
    */
-  addSectionHeader(title) {
-    this.sheet.getRange(this.currentRow, 1).setValue(title)
-      .setFontSize(14).setFontWeight("bold")
-      .setBackground("#f0f8ff");
+  addSectionHeader(title, type = "default") {
+    const colors = {
+      "executive": "#1f4e79",
+      "zones": "#2e7d32",
+      "combinations": "#f57c00",
+      "single": "#7b1fa2",
+      "patterns": "#1976d2",
+      "recommendations": "#d32f2f",
+      "default": "#1f4e79"
+    };
     
-    this.sheet.getRange(this.currentRow, 1, 1, 6).merge();
+    this.sheet.getRange(this.currentRow, 1).setValue(title)
+      .setFontSize(16).setFontWeight("bold")
+      .setBackground(colors[type] || colors.default)
+      .setFontColor("white");
+    
+    this.sheet.getRange(this.currentRow, 1, 1, 8).merge();
     this.currentRow += 1;
   }
   
   /**
    * Добавляет заголовок подсекции
    * @param {string} title - Заголовок подсекции
+   * @param {string} type - Тип подсекции
    */
-  addSubsectionHeader(title) {
-    this.sheet.getRange(this.currentRow, 1).setValue(title)
-      .setFontSize(12).setFontWeight("bold")
-      .setBackground("#f8f8ff");
+  addSubsectionHeader(title, type = "default") {
+    const colors = {
+      "problems": "#d32f2f",
+      "resources": "#388e3c",
+      "special": "#f57c00",
+      "pe": "#1976d2",
+      "somatic": "#7b1fa2",
+      "general": "#2e7d32",
+      "default": "#f0f8ff"
+    };
     
-    this.sheet.getRange(this.currentRow, 1, 1, 6).merge();
+    this.sheet.getRange(this.currentRow, 1).setValue(title)
+      .setFontSize(14).setFontWeight("bold")
+      .setBackground(colors[type] || colors.default)
+      .setFontColor(colors[type] ? "white" : "black");
+    
+    this.sheet.getRange(this.currentRow, 1, 1, 8).merge();
     this.currentRow += 1;
   }
   
@@ -530,6 +567,84 @@ class ImprovedOutputReporter {
     // Границы таблицы
     const tableRange = this.sheet.getRange(this.currentRow - data.length - 1, 1, data.length + 1, headers.length);
     tableRange.setBorder(true, true, true, true, true, true);
+  }
+  
+  // Вспомогательные методы для статусов и приоритетов
+  getStatusForTotal(total) {
+    if (total === 0) return "⚠️ Нет данных";
+    if (total <= 10) return "✅ Оптимально";
+    if (total <= 20) return "⚠️ Много масел";
+    return "🚨 Очень много масел";
+  }
+  
+  getStatusForNeutral(size) {
+    if (size === 0) return "🚨 Нет принятия";
+    if (size <= 3) return "⚠️ Мало принятия";
+    if (size <= 6) return "✅ Умеренное принятие";
+    return "✅ Хорошее принятие";
+  }
+  
+  getStatusForProblems(count) {
+    if (count === 0) return "✅ Проблем нет";
+    if (count <= 3) return "⚠️ Несколько проблем";
+    if (count <= 6) return "🚨 Много проблем";
+    return "🚨 Критично много проблем";
+  }
+  
+  getStatusForResources(count) {
+    if (count === 0) return "⚠️ Нет ресурсов";
+    if (count <= 2) return "⚠️ Мало ресурсов";
+    if (count <= 4) return "✅ Умеренные ресурсы";
+    return "✅ Много ресурсов";
+  }
+  
+  getStatusForCombinations(count) {
+    if (count === 0) return "✅ Простая схема";
+    if (count <= 5) return "⚠️ Средняя сложность";
+    if (count <= 10) return "🚨 Сложная схема";
+    return "🚨 Очень сложная схема";
+  }
+  
+  getStatusForSingleOils(count) {
+    if (count === 0) return "✅ Группы сбалансированы";
+    if (count <= 3) return "⚠️ Несколько единичных";
+    if (count <= 6) return "🚨 Много единичных";
+    return "🚨 Критично много единичных";
+  }
+  
+  getPriorityForOil(oilName, zone) {
+    if (zone === "+++") return "🔴 Высокий";
+    if (zone === "+") return "🟡 Средний";
+    return "🟢 Низкий";
+  }
+  
+  getPotentialForOil(oilName, zone) {
+    if (zone === "---") return "💪 Высокий";
+    if (zone === "-") return "⚠️ Средний";
+    return "🟢 Низкий";
+  }
+  
+  getStatusForSpecialZone(count) {
+    if (count === 0) return "✅ Нет";
+    if (count === 1) return "⚠️ Одно масло";
+    return "🚨 Несколько масел";
+  }
+  
+  getGroupForOil(oilName) {
+    // Ищем группу масла в словаре
+    for (const [key, entry] of this.dictionary.entries()) {
+      if (key.startsWith(oilName + "|")) {
+        return entry.group || "Неизвестно";
+      }
+    }
+    return "Неизвестно";
+  }
+  
+  getPatternType(pattern) {
+    if (pattern.includes("сочетаний")) return "🔗 Сочетания";
+    if (pattern.includes("группа")) return "🌿 Группа";
+    if (pattern.includes("зона")) return "🎯 Зона";
+    return "📊 Общий";
   }
   
   /**
@@ -613,14 +728,16 @@ class ImprovedOutputReporter {
     if (this.data.mainTasks.plusPlusPlusPE.length > 0) {
       recommendations.push({
         text: "Работа с основными психоэмоциональными проблемами (зона +++)",
-        priority: "Высокий"
+        priority: "🔴 Высокий",
+        timeline: "1-2 недели"
       });
     }
     
     if (this.data.combinations.length > 0) {
       recommendations.push({
         text: `Учесть ${this.data.combinations.length} выявленных сочетаний масел в терапевтической схеме`,
-        priority: "Высокий"
+        priority: "🔴 Высокий",
+        timeline: "Немедленно"
       });
     }
     
@@ -628,14 +745,16 @@ class ImprovedOutputReporter {
     if (this.data.singleOils.length > 0) {
       recommendations.push({
         text: "Особое внимание к единичным маслам в группах - они могут указывать на специфические потребности",
-        priority: "Средний"
+        priority: "🟡 Средний",
+        timeline: "2-3 недели"
       });
     }
     
     if (this.data.neutralZoneSize <= 3) {
       recommendations.push({
         text: "Работа по снижению внутреннего напряжения (маленькая нейтральная зона)",
-        priority: "Средний"
+        priority: "🟡 Средний",
+        timeline: "3-4 недели"
       });
     }
     
@@ -643,14 +762,16 @@ class ImprovedOutputReporter {
     if (this.data.additionalTasks.plusPE.length > 0 || this.data.additionalTasks.minusPE.length > 0) {
       recommendations.push({
         text: "Работа с дополнительными психоэмоциональными задачами (зоны + и -)",
-        priority: "Низкий"
+        priority: "🟢 Низкий",
+        timeline: "4-6 недель"
       });
     }
     
     if (recommendations.length === 0) {
       recommendations.push({
         text: "Состояние стабильное. Рекомендуется профилактическое наблюдение.",
-        priority: "Информация"
+        priority: "ℹ️ Информация",
+        timeline: "По необходимости"
       });
     }
     
@@ -662,7 +783,7 @@ class ImprovedOutputReporter {
    */
   formatReport() {
     // Автоширина основных колонок
-    for (let col = 1; col <= 6; col++) {
+    for (let col = 1; col <= 8; col++) {
       this.sheet.autoResizeColumn(col);
     }
     
@@ -673,7 +794,7 @@ class ImprovedOutputReporter {
     this.sheet.setColumnWidth(4, Math.min(this.sheet.getColumnWidth(4), 400));
     
     // Общее форматирование
-    const fullRange = this.sheet.getRange(1, 1, this.currentRow, 6);
+    const fullRange = this.sheet.getRange(1, 1, this.currentRow, 8);
     fullRange.setVerticalAlignment("top");
   }
 }

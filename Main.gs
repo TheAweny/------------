@@ -92,16 +92,24 @@ function runSystemTest() {
     analyzer.loadDictionary();
     console.log(`✅ Словарь загружен: ${analyzer.dictionary.size} записей`);
     
-    // Тест проверки сочетаний
-    const combinationChecker = new CombinationChecker(analyzer.sheets.input);
+    // Тест проверки сочетаний с новым CombinationChecker
+    const combinationChecker = new CombinationChecker(analyzer.sheets.input, analyzer.dictionary);
     const combinations = combinationChecker.checkAllCombinations();
     console.log(`✅ Проверка сочетаний: найдено ${combinations.length} сочетаний`);
+    
+    // Тест структурированных данных
+    const structuredCombos = combinationChecker.getStructuredCombinations();
+    console.log(`✅ Структурированные сочетания: ${structuredCombos.length} записей`);
+    
+    // Тест группировки по группам
+    const combosByGroups = combinationChecker.getCombinationsByGroups();
+    console.log(`✅ Группировка по группам: ${Object.keys(combosByGroups).length} групп`);
     
     SpreadsheetApp.getActiveSpreadsheet().toast("Системный тест пройден успешно!", "Тест", 3);
     
   } catch (error) {
     console.error(`❌ Ошибка теста: ${error.message}`);
-    SpreadsheetApp.getUi().alert(`Ошибка теста: ${error.message}`);
+    SpreadsheetApp.getActiveSpreadsheet().toast(`Ошибка теста: ${error.message}`, "Ошибка", 5);
   }
 }
 
